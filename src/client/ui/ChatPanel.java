@@ -8,11 +8,14 @@ import java.awt.*;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.io.File;
+import java.io.*;
 
 public class ChatPanel extends JPanel {
     private JTextPane chatArea;
     private JTextField chatInput;
     private Map<String, String> emojiMap;
+    private String currentChannel; // 현재 채널 이름 저장
 
     public ChatPanel(PrintWriter out) {
         setLayout(new BorderLayout());
@@ -70,28 +73,48 @@ public class ChatPanel extends JPanel {
         chatInput.addActionListener(e -> sendMessage(out));
     }
 
-    // 이모티콘 선택을 위한 다이얼로그 표시
-    private void showEmojiDialog() {
-        JDialog emojiDialog = new JDialog((Frame) null, "이모티콘", true);
-        emojiDialog.setLayout(new GridLayout(1, emojiMap.size()));
-        emojiDialog.setSize(450, 250);
-        emojiDialog.setLocationRelativeTo(this);
+    public void loadChat(String channelName) {
+        this.currentChannel = channelName; // 현재 채널 업데이트
+        String projectDir = System.getProperty("user.dir");
+        String path = projectDir + "/resources/channel/" + currentChannel + "/chats.txt";
+        System.out.println(path);
+        try {
+            File chatFile = new File(path);
 
-        for (Map.Entry<String, String> entry : emojiMap.entrySet()) {
-            JButton emojiButton = new JButton(new ImageIcon(entry.getValue()));
-            emojiButton.addActionListener(e -> {
-                insertEmoji(entry.getKey());
-                emojiDialog.dispose();
-            });
-            emojiDialog.add(emojiButton);
+            // 파일이 존재하는지 확인
+            if (!chatFile.exists()) {
+                appendMessage("[" + channelName + "] 채팅 기록 파일을 찾을 수 없습니다.");
+                return;
+            }
+
+            BufferedReader reader = new BufferedReader(new FileReader(chatFile));
+            String line;
+            appendMessage("[" + channelName + "] 채팅 기록 로드 시작:");
+
+            while ((line = reader.readLine()) != null) {
+                // 데이터 포맷: 123,2024-12-16,16:05:37,안녕하세요,NULL,NULL
+                String[] parts = line.split(",");
+
+                if (parts.length >= 4) {
+                    String id = parts[0].trim();
+                    String date = parts[1].trim();
+                    String time = parts[2].trim();
+                    String message = parts[3].trim();
+
+                    // 채팅 내용을 화면에 추가
+                    appendMessage("[" + date + " " + time + "] " + id + ": " + message);
+                } else {
+                    appendMessage("잘못된 데이터 형식: " + line);
+                }
+            }
+
+            reader.close();
+            appendMessage("[" + channelName + "] 채팅 기록 로드 완료.");
+        } catch (IOException e) {
+            appendMessage("[" + channelName + "] 채팅 기록 로드 중 오류 발생: " + e.getMessage());
         }
-        emojiDialog.setVisible(true);
     }
 
-    // 이모티콘을 채팅 입력란에 추가하는 메서드
-    private void insertEmoji(String emojiCode) {
-        chatInput.setText(chatInput.getText() + " " + emojiCode);
-    }
 
     public void appendMessage(String message) {
         StyledDocument doc = chatArea.getStyledDocument();
@@ -131,9 +154,31 @@ public class ChatPanel extends JPanel {
 
     private void sendMessage(PrintWriter out) {
         String message = chatInput.getText().trim();
-        if (!message.isEmpty()) {
-            out.println(message); // 서버로 전송
+        if (!message.isEmpty() && currentChannel != null) {
+            out.println( message); // 선택된 채널로 메시지 전송
+            //appendMessage("[나]: " + message);
             chatInput.setText("");
         }
+    }
+
+    private void showEmojiDialog() {
+        JDialog emojiDialog = new JDialog((Frame) null, "이모티콘", true);
+        emojiDialog.setLayout(new GridLayout(1, emojiMap.size()));
+        emojiDialog.setSize(450, 250);
+        emojiDialog.setLocationRelativeTo(this);
+
+        for (Map.Entry<String, String> entry : emojiMap.entrySet()) {
+            JButton emojiButton = new JButton(new ImageIcon(entry.getValue()));
+            emojiButton.addActionListener(e -> {
+                insertEmoji(entry.getKey());
+                emojiDialog.dispose();
+            });
+            emojiDialog.add(emojiButton);
+        }
+        emojiDialog.setVisible(true);
+    }
+
+    private void insertEmoji(String emojiCode) {
+        chatInput.setText(chatInput.getText() + " " + emojiCode);
     }
 }

@@ -9,7 +9,7 @@ public class ClientHandler implements Runnable {
     private BufferedReader in;
     private PrintWriter out;
     String username;
-    private String currentChannel = "general";
+    private String currentChannel = "channel1";
 
     public ClientHandler(Socket socket) {
         this.socket = socket;
@@ -33,9 +33,9 @@ public class ClientHandler implements Runnable {
                     ChannelManager.leaveChannel(currentChannel, this);
                     currentChannel = newChannel;
                     ChannelManager.joinChannel(currentChannel, this);
-                    out.println(currentChannel + "로 채널이동");
+
                 } else {
-                    ChannelManager.broadcast(currentChannel, username + ": " + message);
+                    //ChannelManager.broadcast(currentChannel, username + ": " + message);
                 }
             }
         } catch (IOException e) {

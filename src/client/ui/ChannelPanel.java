@@ -8,6 +8,9 @@ import java.io.PrintWriter;
 public class ChannelPanel extends JPanel {
     private DefaultListModel<String> channelListModel;
     private JList<String> channelList;
+    private ChatPanel chatPanel; // ChatPanel 참조
+    private MemberPanel memberPanel; // MemberPanel 참조
+    private InfoPanel infoPanel; // InfoPanel 참조
 
     public ChannelPanel(PrintWriter out) {
         setLayout(new BorderLayout());
@@ -23,14 +26,14 @@ public class ChannelPanel extends JPanel {
         channelList.setBackground(new Color(47, 49, 54));
         channelList.setForeground(new Color(220, 221, 222));
         channelList.setSelectionForeground(Color.WHITE);
-        channelList.setCellRenderer(new CircleCellRenderer()); // 원형 셀 렌더러 적용
+        channelList.setCellRenderer(new CircleCellRenderer());
 
         JScrollPane channelScrollPane = new JScrollPane(channelList);
         channelScrollPane.setBorder(BorderFactory.createEmptyBorder());
         channelScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-        channelScrollPane.getVerticalScrollBar().setOpaque(false); // 스크롤바 투명하게 설정
-        channelScrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0)); // 스크롤바 숨기기
-        
+        channelScrollPane.getVerticalScrollBar().setOpaque(false);
+        channelScrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
+
         add(channelScrollPane, BorderLayout.CENTER);
 
         JPanel addChannelPanel = new JPanel(new BorderLayout());
@@ -56,6 +59,7 @@ public class ChannelPanel extends JPanel {
             if (!newChannel.isEmpty() && !channelListModel.contains(newChannel)) {
                 out.println("/addchannel " + newChannel);
                 newChannelField.setText("");
+                addChannel(newChannel);
             }
         });
 
@@ -65,6 +69,9 @@ public class ChannelPanel extends JPanel {
                 String selectedChannel = channelList.getSelectedValue();
                 if (selectedChannel != null) {
                     out.println("/join " + selectedChannel);
+                    if (chatPanel != null) chatPanel.loadChat(selectedChannel);
+                    //if (memberPanel != null) memberPanel.updateMembers(selectedChannel);
+                    //if (infoPanel != null) infoPanel.updateInfo(selectedChannel);
                 }
             }
         });
@@ -72,29 +79,42 @@ public class ChannelPanel extends JPanel {
         addChannels();
     }
 
-    private void addChannels(){ //chatpanel,memberpanel,infopanel
-        String currentDirectory = System.getProperty("user.dir");
-        System.out.println("현재 디렉토리: " + currentDirectory);
+    // ChatPanel, MemberPanel, InfoPanel 참조 설정 메서드
+    public void setChatPanel(ChatPanel chatPanel) {
+        this.chatPanel = chatPanel;
+    }
+
+    public void setMemberPanel(MemberPanel memberPanel) {
+        this.memberPanel = memberPanel;
+    }
+
+    public void setInfoPanel(InfoPanel infoPanel) {
+        this.infoPanel = infoPanel;
+    }
+
+    // 채널 추가 메서드
+    private void addChannel(String channelName) {
+        channelListModel.addElement(channelName);
+    }
+
+    // 기존 채널 로드
+    private void addChannels() {
         String projectDir = System.getProperty("user.dir");
-        // 상대 경로를 합쳐서 최종 경로 만들기
         String path = projectDir + "/resources/channel";
 
-
         File channelFolder = new File(path);
-
-        // resources/channel 폴더 내의 디렉토리 이름을 가져옴
         File[] directories = channelFolder.listFiles(File::isDirectory);
 
         if (directories != null) {
             for (File dir : directories) {
                 channelListModel.addElement(dir.getName());
-                System.out.println(dir.getName());
             }
         } else {
             System.out.println("No directories found or the path is incorrect.");
         }
     }
 
+    // 원형 셀 렌더러
     private class CircleCellRenderer extends DefaultListCellRenderer {
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
@@ -102,13 +122,11 @@ public class ChannelPanel extends JPanel {
                 @Override
                 protected void paintComponent(Graphics g) {
                     super.paintComponent(g);
-                    // 기본 배경
-                    g.setColor(new Color(78, 84, 92)); // 회색 동그라미
+                    g.setColor(new Color(78, 84, 92));
                     g.fillOval(0, 0, getWidth(), getHeight());
 
-                    // 선택된 경우의 배경
                     if (isSelected) {
-                        g.setColor(new Color(88, 101, 242)); // 파란색 동그라미
+                        g.setColor(new Color(88, 101, 242));
                         g.fillOval(0, 0, getWidth(), getHeight());
                     }
                 }
@@ -116,15 +134,14 @@ public class ChannelPanel extends JPanel {
 
             panel.setLayout(new BorderLayout());
 
-            // 채널 이름을 표시하는 라벨
             JLabel label = new JLabel(value.toString(), SwingConstants.CENTER);
             label.setForeground(Color.WHITE);
-            label.setFont(new Font("맑은 고딕", Font.BOLD, 16)); // 글꼴은 맑은 고딕, 굵게, 크기는 16
+            label.setFont(new Font("맑은 고딕", Font.BOLD, 16));
 
             panel.add(label, BorderLayout.CENTER);
-            panel.setPreferredSize(new Dimension(100, 100)); // 동그라미 크기 설정
-            panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5)); // 여백 설정
-            panel.setOpaque(false); // 투명하게 설정
+            panel.setPreferredSize(new Dimension(100, 100));
+            panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+            panel.setOpaque(false);
 
             return panel;
         }
